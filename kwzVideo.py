@@ -10,6 +10,7 @@
 
 import os
 import shutil
+import sys
 import subprocess as sp
 import numpy as np
 from kwz import KWZParser, PALETTE
