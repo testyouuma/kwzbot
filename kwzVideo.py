@@ -13,6 +13,8 @@ from kwz import KWZParser, PALETTE
 import subprocess as sp
 import numpy as np
 
+FFMPEG = os.environ.get("FFMPEG") or shutil.which("ffmpeg") or "ffmpeg"
+
 # convert palette to bytes
 PALETTE = [bytes(color) for color in PALETTE]
 
