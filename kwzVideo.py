@@ -16,6 +16,9 @@ import numpy as np
 from kwz import KWZParser, PALETTE
 
 
+argv = sys.argv
+
+
 FFMPEG = os.environ.get("FFMPEG") or shutil.which("ffmpeg") or "ffmpeg"
 
 # convert palette to bytes
