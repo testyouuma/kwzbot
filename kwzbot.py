@@ -86,11 +86,11 @@ def kwz_to_mp4_silent(input_kwz: Path, silent_mp4: Path):
     run_cmd(cmd, cwd=BASE_DIR, timeout=CONVERT_TIMEOUT)
 
 
-def kwz_to_wav_track0(input_kwz: Path, wav: Path) -> bool:
-    cmd = [sys.executable, str(KWZAUDIO), str(input_kwz), "0", str(wav)]
+def kwz_to_wav_mix(input_kwz: Path, wav: Path) -> bool:
+    cmd = [sys.executable, str(KWZAUDIO), str(input_kwz), "mix", str(wav)]
     try:
         run_cmd(cmd, cwd=BASE_DIR, timeout=CONVERT_TIMEOUT)
-        return wav.exists() and wav.stat().st_size > 44  # wavヘッダ以上
+        return wav.exists() and wav.stat().st_size > 44
     except subprocess.CalledProcessError:
         return False
 
@@ -152,7 +152,7 @@ async def handle_one_attachment(message: discord.Message, att: discord.Attachmen
                 await asyncio.to_thread(kwz_to_mp4_silent, in_kwz, silent_mp4)
 
                 # ② 音声（BGM）
-                has_bgm = await asyncio.to_thread(kwz_to_wav_track0, in_kwz, bgm_wav)
+                has_bgm = await asyncio.to_thread(kwz_to_wav_mix, in_kwz, bgm_wav)
 
                 # ③ 合体（BGMが無ければ無音のまま返す）
                 if has_bgm:
@@ -205,3 +205,4 @@ if __name__ == "__main__":
         raise SystemExit(f"kwzVideo.py / kwzAudio.py が見つからない: {BASE_DIR}")
 
     bot.run(DISCORD_TOKEN)
+
