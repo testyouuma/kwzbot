@@ -8,10 +8,12 @@
 # Usage:
 # python kwzVideo.py <input.kwz> <output.mp4>
 
-from sys import argv
-from kwz import KWZParser, PALETTE
+import os
+import shutil
 import subprocess as sp
 import numpy as np
+from kwz import KWZParser, PALETTE
+
 
 FFMPEG = os.environ.get("FFMPEG") or shutil.which("ffmpeg") or "ffmpeg"
 
