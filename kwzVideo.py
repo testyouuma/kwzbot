@@ -34,7 +34,6 @@ else:
   with open(infile, "rb") as kwz:
     parser = KWZParser(kwz)
 
-    FFMPEG = r"C:\ffmpeg\bin\ffmpeg.exe"
 
     process = sp.Popen([
       FFMPEG,
