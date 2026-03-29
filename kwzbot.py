@@ -4,6 +4,7 @@ import uuid
 import asyncio
 import tempfile
 import subprocess
+import random
 from pathlib import Path
 
 import discord
@@ -30,7 +31,9 @@ DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
 intents.message_content = True  # Developer Portal側でもON必要
-bot = commands.Bot(command_prefix="!", intents=intents)
+
+# !random と -random の両方を使えるようにする
+bot = commands.Bot(command_prefix=["!", "-"], intents=intents)
 
 # 変換の同時実行を制限（これで「2回目で詰まる」が激減）
 _convert_sem = asyncio.Semaphore(MAX_CONCURRENT_CONVERSIONS)
@@ -72,12 +75,12 @@ def run_cmd(cmd, cwd=None, timeout=None):
     # subprocess.run互換の戻り値っぽくしたいなら必要に応じて
     class R:
         pass
+
     r = R()
     r.stdout = out
     r.stderr = err
     r.returncode = p.returncode
     return r
-
 
 
 def kwz_to_mp4_silent(input_kwz: Path, silent_mp4: Path):
@@ -115,6 +118,13 @@ def mux_mp4_with_audio(silent_mp4: Path, wav: Path, out_mp4: Path):
 @bot.command()
 async def ping(ctx):
     await ctx.reply("pong")
+
+
+@bot.command(name="random")
+async def random_cmd(ctx):
+    n = random.randint(1, 830)
+    url = f"https://aiueo9999.pythonanywhere.com/detail/Q{n:03d}"
+    await ctx.reply(url)
 
 
 @bot.event
@@ -205,5 +215,3 @@ if __name__ == "__main__":
         raise SystemExit(f"kwzVideo.py / kwzAudio.py が見つからない: {BASE_DIR}")
 
     bot.run(DISCORD_TOKEN)
-
-
