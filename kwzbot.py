@@ -123,7 +123,7 @@ async def ping(ctx):
 @bot.command(name="random")
 async def random_cmd(ctx):
     n = random.randint(1, 830)
-    url = f"https://aiueo9999.pythonanywhere.com/detail/Q{n:03d}"
+    url = f"https://aiueo9999.pythonanywhere.com/detail/Q{n}"
     await ctx.reply(url)
 
 
