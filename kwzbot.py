@@ -168,11 +168,14 @@ async def handle_one_attachment(message: discord.Message, att: discord.Attachmen
 
                 # ③ 合体（BGMが無ければ無音のまま返す）
                 if has_bgm:
+                    wav_size = bgm_wav.stat().st_size
+                    print(f"[BGM ok] {att.filename}: wav={wav_size}bytes")
                     await asyncio.to_thread(mux_mp4_with_audio, silent_mp4, bgm_wav, out_mp4)
+                    print(f"[mux ok] out={out_mp4.stat().st_size}bytes")
                     result = out_mp4
                 else:
                     result = silent_mp4
-                    print(f"[BGM なし] {att.filename}: {bgm_reason}")
+                    print(f"[BGM none] {att.filename}: {bgm_reason}")
 
                 await status_msg.edit(content="📤 Discordへアップロード中…")
 
