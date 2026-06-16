@@ -117,6 +117,23 @@ def mux_mp4_with_audio(silent_mp4: Path, wav: Path, out_mp4: Path):
     run_cmd(cmd, cwd=silent_mp4.parent, timeout=CONVERT_TIMEOUT)
 
 
+def trim_and_resize(input_mp4: Path, output_mp4: Path, aspect: str):
+    vf_trim = "scale=6610:5110,crop=6400:4800:105:150,scale=640:480"
+    vf_resize = "scale=1280:960" if aspect == "4:3" else "scale=1280:720"
+    cmd = [
+        str(FFMPEG), "-y",
+        "-i", str(input_mp4),
+        "-vf", f"{vf_trim},{vf_resize}",
+        "-pix_fmt", "yuv420p",
+        "-c:v", "libx264",
+        "-preset", "medium",
+        "-tune", "animation",
+        "-c:a", "copy",
+        str(output_mp4),
+    ]
+    run_cmd(cmd, cwd=input_mp4.parent, timeout=CONVERT_TIMEOUT)
+
+
 @bot.command()
 async def ping(ctx):
     await ctx.reply("pong")
@@ -168,19 +185,36 @@ async def handle_one_attachment(message: discord.Message, att: discord.Attachmen
 
                 # ③ 合体（BGMが無ければ無音のまま返す）
                 if has_bgm:
-                    wav_size = bgm_wav.stat().st_size
-                    print(f"[BGM ok] {att.filename}: wav={wav_size}bytes")
                     await asyncio.to_thread(mux_mp4_with_audio, silent_mp4, bgm_wav, out_mp4)
-                    print(f"[mux ok] out={out_mp4.stat().st_size}bytes")
                     result = out_mp4
                 else:
                     result = silent_mp4
                     print(f"[BGM none] {att.filename}: {bgm_reason}")
 
+                # ④ 比率を聞く
+                await status_msg.edit(content="📐 比率を選んでね！\n`4` → 4:3 (1280×960)\n`16` → 16:9 (1280×720)\n（60秒以内に答えてね）")
+
+                def aspect_check(m):
+                    return (m.author == message.author
+                            and m.channel == message.channel
+                            and m.content.strip() in ["4", "16"])
+
+                try:
+                    reply = await bot.wait_for("message", check=aspect_check, timeout=60)
+                    aspect = "4:3" if reply.content.strip() == "4" else "16:9"
+                except asyncio.TimeoutError:
+                    aspect = "4:3"
+                    await message.channel.send("⏱ タイムアウト！4:3で出力するね")
+
+                # ⑤ 枠消し＋リサイズ
+                await status_msg.edit(content=f"✂️ 枠消し＋リサイズ中（{aspect}）…")
+                final_mp4 = td / f"final_{uid}.mp4"
+                await asyncio.to_thread(trim_and_resize, result, final_mp4, aspect)
+
                 await status_msg.edit(content="📤 Discordへアップロード中…")
 
                 # 送信
-                await message.reply(file=discord.File(result, filename="converted.mp4"))
+                await message.reply(file=discord.File(final_mp4, filename="converted.mp4"))
                 await message.reply("出力終わりました！↑いいさくひんだねまじで")
 
                 # ステータス更新
