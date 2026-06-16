@@ -89,13 +89,15 @@ def kwz_to_mp4_silent(input_kwz: Path, silent_mp4: Path):
     run_cmd(cmd, cwd=BASE_DIR, timeout=CONVERT_TIMEOUT)
 
 
-def kwz_to_wav_track0(input_kwz: Path, wav: Path) -> bool:
+def kwz_to_wav_track0(input_kwz: Path, wav: Path) -> tuple[bool, str]:
     cmd = [sys.executable, str(KWZAUDIO), str(input_kwz), "0", str(wav)]
     try:
         run_cmd(cmd, cwd=BASE_DIR, timeout=CONVERT_TIMEOUT)
-        return wav.exists() and wav.stat().st_size > 44  # wavヘッダ以上
-    except subprocess.CalledProcessError:
-        return False
+        has = wav.exists() and wav.stat().st_size > 44  # wavヘッダ以上
+        return has, "" if has else "BGMトラック（track 0）のデータが空です"
+    except subprocess.CalledProcessError as e:
+        err = (e.stderr or e.stdout or "unknown")[:500]
+        return False, f"kwzAudio.py エラー: {err}"
 
 
 def mux_mp4_with_audio(silent_mp4: Path, wav: Path, out_mp4: Path):
@@ -162,7 +164,7 @@ async def handle_one_attachment(message: discord.Message, att: discord.Attachmen
                 await asyncio.to_thread(kwz_to_mp4_silent, in_kwz, silent_mp4)
 
                 # ② 音声（BGM）
-                has_bgm = await asyncio.to_thread(kwz_to_wav_track0, in_kwz, bgm_wav)
+                has_bgm, bgm_reason = await asyncio.to_thread(kwz_to_wav_track0, in_kwz, bgm_wav)
 
                 # ③ 合体（BGMが無ければ無音のまま返す）
                 if has_bgm:
@@ -170,6 +172,8 @@ async def handle_one_attachment(message: discord.Message, att: discord.Attachmen
                     result = out_mp4
                 else:
                     result = silent_mp4
+
+                print(f"[BGM なし] {att.filename}: {bgm_reason}")
 
                 await status_msg.edit(content="📤 Discordへアップロード中…")
 
