@@ -460,7 +460,7 @@ class KWZParser:
     return self.track_lengths[track_index] > 0
 
   def get_audio_track(self, track_index):
-     if not hasattr(self, "track_lengths"):
+    if not hasattr(self, "track_lengths"):
       raise ValueError("このkwzにはKSN（音声）セクションがありません")
     size = self.track_lengths[track_index]
     # offset starts after sound header
