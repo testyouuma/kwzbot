@@ -469,8 +469,8 @@ class KWZParser:
       offset += self.track_lengths[i]
     self.buffer.seek(offset)
 
-    # create an output buffer with enough space for 60 seconds of audio at 16364 Hz
-    output = np.zeros(16364 * 60, dtype="<i2")
+    # create an output buffer sized from the track data (up to 4 samples per byte)
+    output = np.zeros(size * 4, dtype="<i2")
     outputOffset = 0
 
     # initial decoder state
