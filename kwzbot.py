@@ -119,7 +119,7 @@ def mux_mp4_with_audio(silent_mp4: Path, wav: Path, out_mp4: Path):
 
 def trim_and_resize(input_mp4: Path, output_mp4: Path, aspect: str):
     vf_trim = "scale=6610:5110,crop=6400:4800:105:150,scale=640:480"
-    vf_resize = "scale=1280:960" if aspect == "4:3" else "scale=1280:720"
+    vf_resize = "scale=640:480" if aspect == "4:3" else "scale=640:360"
     cmd = [
         str(FFMPEG), "-y",
         "-i", str(input_mp4),
@@ -192,7 +192,7 @@ async def handle_one_attachment(message: discord.Message, att: discord.Attachmen
                     print(f"[BGM none] {att.filename}: {bgm_reason}")
 
                 # ④ 比率を聞く
-                await status_msg.edit(content="📐 比率を選んでね！\n`4` → 4:3 (1280×960)\n`16` → 16:9 (1280×720)\n（60秒以内に答えてね）")
+                await status_msg.edit(content="📐 比率を選んでね！\n`4` → 4:3 (640×480)\n`16` → 16:9 (640×360)\n（60秒以内に答えてね）")
 
                 def aspect_check(m):
                     return (m.author == message.author
