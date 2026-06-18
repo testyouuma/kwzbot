@@ -5,6 +5,8 @@ import asyncio
 import tempfile
 import subprocess
 import random
+import re
+import urllib.request
 from pathlib import Path
 
 import discord
@@ -139,11 +141,42 @@ async def ping(ctx):
     await ctx.reply("pong")
 
 
+def fetch_stick_info(n: int):
+    url = f"https://aiueo9999.pythonanywhere.com/detail/Q{n}"
+    try:
+        req = urllib.request.urlopen(url, timeout=10)
+        html = req.read().decode("utf-8")
+    except Exception:
+        return None, None, None, url
+
+    title_m = re.search(r'<h1[^>]*>.*?<i[^>]*></i>\s*(.+?)\s*</h1>', html, re.DOTALL)
+    yt_m = re.search(r'youtube\.com/embed/([a-zA-Z0-9_-]+)', html)
+    author_m = re.search(r'<td class="wb-label">作者.*?</td>.*?class="badge[^"]*">([^<]+)</a>', html, re.DOTALL)
+
+    title = title_m.group(1).strip() if title_m else f"Q{n}"
+    yt_id = yt_m.group(1) if yt_m else None
+    author = author_m.group(1).strip() if author_m else "不明"
+    return title, yt_id, author, url
+
+
 @bot.command(name="random")
 async def random_cmd(ctx):
-    n = random.randint(1, 830)
-    url = f"https://aiueo9999.pythonanywhere.com/detail/Q{n}"
-    await ctx.reply(url)
+    n = random.randint(1, 850)
+    title, yt_id, author, page_url = await asyncio.to_thread(fetch_stick_info, n)
+
+    embed = discord.Embed(
+        title=title,
+        url=page_url,
+        color=0x3498db,
+    )
+    embed.set_footer(text=f"ID: Q{n} | 作者: {author}")
+
+    if yt_id:
+        yt_url = f"https://youtu.be/{yt_id}"
+        embed.description = yt_url
+        embed.set_image(url=f"https://img.youtube.com/vi/{yt_id}/hqdefault.jpg")
+
+    await ctx.reply(embed=embed)
 
 
 @bot.event
