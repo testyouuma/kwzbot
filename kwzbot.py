@@ -6,7 +6,9 @@ import tempfile
 import subprocess
 import random
 import re
+import threading
 import urllib.request
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 import discord
@@ -285,6 +287,25 @@ async def on_message(message: discord.Message):
     await bot.process_commands(message)
 
 
+class _HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"ok")
+
+    def log_message(self, *args):
+        pass  # アクセスログを抑制
+
+
+def start_health_server():
+    # Renderが割り当てるPORTでHTTPサーバーを立てる（スリープ防止＆ポート検知用）
+    port = int(os.environ.get("PORT", "10000"))
+    server = HTTPServer(("0.0.0.0", port), _HealthHandler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    print(f"Health server listening on port {port}")
+
+
 if __name__ == "__main__":
     if not DISCORD_TOKEN:
         raise SystemExit("DISCORD_TOKEN が環境変数に設定されてないよ（例: setx DISCORD_TOKEN \"...\"）")
@@ -293,4 +314,5 @@ if __name__ == "__main__":
     if not KWZVIDEO.exists() or not KWZAUDIO.exists():
         raise SystemExit(f"kwzVideo.py / kwzAudio.py が見つからない: {BASE_DIR}")
 
+    start_health_server()
     bot.run(DISCORD_TOKEN)
