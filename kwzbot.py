@@ -123,19 +123,39 @@ def mux_mp4_with_audio(silent_mp4: Path, wav: Path, out_mp4: Path):
 
 def trim_and_resize(input_mp4: Path, output_mp4: Path, aspect: str):
     vf_trim = "scale=6610:5110,crop=6400:4800:105:150,scale=640:480"
-    vf_resize = "scale=640:480" if aspect == "4:3" else "scale=640:360"
+    vf_resize = "scale=1280:960" if aspect == "4:3" else "scale=1280:720"
     cmd = [
         str(FFMPEG), "-y",
         "-i", str(input_mp4),
         "-vf", f"{vf_trim},{vf_resize}",
         "-pix_fmt", "yuv420p",
         "-c:v", "libx264",
-        "-preset", "medium",
+        "-preset", "ultrafast",
         "-tune", "animation",
         "-c:a", "copy",
         str(output_mp4),
     ]
     run_cmd(cmd, cwd=input_mp4.parent, timeout=CONVERT_TIMEOUT)
+
+
+# Discordに直接送れるサイズの上限（通常サーバーは10MBだが安全マージンで9.5MB）
+DISCORD_LIMIT_BYTES = int(9.5 * 1024 * 1024)
+
+
+def upload_to_catbox(file_path: Path) -> str:
+    import requests
+    with open(file_path, "rb") as f:
+        resp = requests.post(
+            "https://catbox.moe/user/api.php",
+            data={"reqtype": "fileupload"},
+            files={"fileToUpload": (file_path.name, f)},
+            timeout=180,
+        )
+    resp.raise_for_status()
+    url = resp.text.strip()
+    if not url.startswith("http"):
+        raise RuntimeError(f"Catbox upload failed: {url}")
+    return url
 
 
 @bot.command()
@@ -233,7 +253,7 @@ async def handle_one_attachment(message: discord.Message, att: discord.Attachmen
                     print(f"[BGM none] {att.filename}: {bgm_reason}")
 
                 # ④ 比率を聞く
-                await status_msg.edit(content="📐 比率を選んでね！\n`4` → 4:3 (640×480)\n`16` → 16:9 (640×360)\n（60秒以内に答えてね）")
+                await status_msg.edit(content="📐 比率を選んでね！\n`4` → 4:3 (1280×960)\n`16` → 16:9 (1280×720)\n（60秒以内に答えてね）")
 
                 def aspect_check(m):
                     return (m.author == message.author
@@ -252,11 +272,16 @@ async def handle_one_attachment(message: discord.Message, att: discord.Attachmen
                 final_mp4 = td / f"final_{uid}.mp4"
                 await asyncio.to_thread(trim_and_resize, result, final_mp4, aspect)
 
-                await status_msg.edit(content="📤 Discordへアップロード中…")
-
-                # 送信
-                await message.reply(file=discord.File(final_mp4, filename="converted.mp4"))
-                await message.reply("出力終わりました！↑いいさくひんだねまじで")
+                # ⑥ 送信（Discord上限を超えたらCatboxへ）
+                file_size = final_mp4.stat().st_size
+                if file_size <= DISCORD_LIMIT_BYTES:
+                    await status_msg.edit(content="📤 Discordへアップロード中…")
+                    await message.reply(file=discord.File(final_mp4, filename="converted.mp4"))
+                    await message.reply("出力終わりました！↑いいさくひんだねまじで")
+                else:
+                    await status_msg.edit(content=f"📦 ファイルが大きい（{file_size/1024/1024:.1f}MB）のでアップローダーに上げてるよ…")
+                    catbox_url = await asyncio.to_thread(upload_to_catbox, final_mp4)
+                    await message.reply(f"出力終わりました！↑いいさくひんだねまじで\n🔗 {catbox_url}")
 
                 # ステータス更新
                 await status_msg.edit(content="✅ 変換完了！")
