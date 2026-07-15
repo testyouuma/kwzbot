@@ -185,7 +185,7 @@ def fetch_stick_info(n: int):
 
 @bot.command(name="random")
 async def random_cmd(ctx):
-    n = random.randint(1, 850)
+    n = random.randint(1, 910)
     title, yt_id, nico_id, author, page_url = await asyncio.to_thread(fetch_stick_info, n)
 
     embed = discord.Embed(
