@@ -144,17 +144,19 @@ DISCORD_LIMIT_BYTES = int(9.5 * 1024 * 1024)
 
 def upload_to_catbox(file_path: Path) -> str:
     import requests
+    headers = {"User-Agent": "Mozilla/5.0 kwzbot/1.0"}
     with open(file_path, "rb") as f:
         resp = requests.post(
             "https://catbox.moe/user/api.php",
             data={"reqtype": "fileupload"},
             files={"fileToUpload": (file_path.name, f)},
+            headers=headers,
             timeout=180,
         )
     resp.raise_for_status()
     url = resp.text.strip()
     if not url.startswith("http"):
-        raise RuntimeError(f"Catbox upload failed: {url}")
+        raise RuntimeError(f"Catbox upload failed: {url!r}")
     return url
 
 
