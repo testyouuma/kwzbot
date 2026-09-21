@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+test_bgm.wav
+
+# クイズサイトは別リポジトリ(GitHub Pages)で公開するため、bot本体には含めない
+quiz/
